@@ -178,7 +178,7 @@ std::string ArrayToString(const T* array, int32_t count, const char* arrayName, 
 	if (count <= 0)
 		return "// Array count = 0";
 
-	// T arrayName[] = {
+	// T arrayName[] = { // sizeof(T) = n
 	using PT = std::remove_cv<T>::type;
 	ss << typeid(OutputType<PT>::type).name() << ' ' << arrayName << " = { // sizeof(" << typeid(OutputType<PT>::type).name() << ") = " << sizeof(OutputType<PT>::type) << "\n";
 
@@ -333,7 +333,7 @@ void PolyPolyline(const char* func, const unsigned char* data, QTextEdit* pEdit)
 	auto points = reinterpret_cast<const PointType*>(data + numberOfPolylines * sizeof(uint32_t));
 	auto ptsText = ArrayToString(points, numberOfPoints, "points", 1);
 	pEdit->append(ptsText.c_str());
-	item = QString("%2(hdc, points, polys, %1);").arg(numberOfPolylines).arg(func);
+	item = QString("\t%2(hdc, points, polys, %1);").arg(numberOfPolylines).arg(func);
 	pEdit->append(item);
 	item = ("}");
 	pEdit->append(item);
