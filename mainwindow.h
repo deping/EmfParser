@@ -41,12 +41,6 @@ private:
 	QString m_iniFile;
 
     void ParseEmf(const QString& fileName);
-	static BOOL __stdcall EnumMetafileCallback(
-		Gdiplus::EmfPlusRecordType recordType,
-		unsigned int flags,
-		unsigned int dataSize,
-		const unsigned char* pStr,
-		void* callbackData);
 
 private slots:
     void OpenEmf();
