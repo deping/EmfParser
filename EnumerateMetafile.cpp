@@ -45,6 +45,18 @@ void TypeToString<POINT>(std::stringstream& ss, const POINT& t)
 	ss << '{' << t.x << ',' << t.y << '}';
 }
 
+template<>
+void TypeToString<RECTL>(std::stringstream& ss, const RECTL& t)
+{
+	ss << '{' << t.left << ',' << t.top << ',' << t.right << ',' << t.bottom << '}';
+}
+
+template<>
+void TypeToString<RECT>(std::stringstream& ss, const RECT& t)
+{
+	ss << '{' << t.left << ',' << t.top << ',' << t.right << ',' << t.bottom << '}';
+}
+
 template<typename T>
 void ArrayToString(std::stringstream& ss, const T* array, int32_t count, const char* arrayName, int indentLevel)
 {
@@ -59,7 +71,7 @@ void ArrayToString(std::stringstream& ss, const T* array, int32_t count, const c
 
 	// T arrayName[] = { // sizeof(T) = n
 	using PT = std::remove_cv<T>::type;
-	ss << typeid(OutputType<PT>::type).name() << ' ' << arrayName << " = { // sizeof(" << typeid(OutputType<PT>::type).name() << ") = " << sizeof(OutputType<PT>::type) << "\n";
+	ss << typeid(OutputType<PT>::type).name() << ' ' << arrayName << "[] = { // sizeof(" << typeid(OutputType<PT>::type).name() << ") = " << sizeof(OutputType<PT>::type) << "\n";
 
 	// t1, t2, t3 ...
 	for (int j = 0; j < indentLevel + 1; ++j)
@@ -77,6 +89,170 @@ void ArrayToString(std::stringstream& ss, const T* array, int32_t count, const c
 	for (int i = 0; i < indentLevel; ++i)
 		ss << '\t';
 	ss << "};\n";
+}
+
+template<typename CharType>
+struct ExtTextOutName;
+
+template<>
+struct ExtTextOutName<char>
+{
+	static const char* get()
+	{
+		return "ExtTextOutA";
+	}
+	static const char* prefix()
+	{
+		return "";
+	}
+};
+
+template<>
+struct ExtTextOutName<wchar_t>
+{
+	static const char* get()
+	{
+		return "ExtTextOutW";
+	}
+	static const char* prefix()
+	{
+		return "L";
+	}
+};
+
+template<typename CharType>
+struct CharTraits;
+
+template<>
+struct CharTraits<char>
+{
+	static const char* prefix()
+	{
+		return "";
+	}
+	static std::string convert(const std::string& buffer)
+	{
+		return buffer;
+	}
+};
+
+template<>
+struct CharTraits<wchar_t>
+{
+	static const char* prefix()
+	{
+		return "L";
+	}
+
+	static std::string convert(const std::wstring& buffer)
+	{
+		UINT acp = CP_UTF8;
+		DWORD  num = WideCharToMultiByte(acp, 0, buffer.c_str(), buffer.length(), NULL, 0, NULL, NULL);
+		std::string res(num, '?');
+		WideCharToMultiByte(acp, 0, buffer.c_str(), buffer.length(), &res[0], num, NULL, NULL);
+		return res;
+	}
+};
+
+template<typename LOGBRUSHType>
+void LogBrushToString(std::stringstream& ss, const LOGBRUSHType& logBrush, int indentLevel)
+{
+	const char* lbHatch;
+	switch (logBrush.lbStyle)
+	{
+	case BS_HATCHED:
+		lbHatch = ConstantDictionary::HatchStyle((int)logBrush.lbHatch);
+		break;
+	case BS_PATTERN:
+	case BS_INDEXED:
+	case BS_DIBPATTERN:
+	case BS_DIBPATTERNPT:
+	case BS_PATTERN8X8:
+	case BS_DIBPATTERN8X8:
+	case BS_MONOPATTERN:
+		// TODO
+		lbHatch = "0";
+		break;
+	case BS_SOLID:
+	case BS_NULL:
+	default:
+		lbHatch = "0";
+		break;
+	}
+	for (int i = 0; i < indentLevel; ++i)
+		ss << '\t';
+	ss << "LOGBRUSH logBrush = " << '{' << ConstantDictionary::BrushStyle(logBrush.lbStyle) << ','
+		<< ConstantDictionary::RGBColor(logBrush.lbColor) << ", " << lbHatch << "};\n";
+}
+
+void LogFontWToString(std::stringstream& ss, const LOGFONTW& logFont, int indentLevel)
+{
+	for (int i = 0; i < indentLevel; ++i)
+		ss << '\t';
+	ss << "LOGFONTW logFont = " << '{' << logFont.lfHeight << ", " << logFont.lfWidth << ", "
+		<< logFont.lfEscapement << ", " << logFont.lfOrientation << ", "
+		<< ConstantDictionary::FontWeight(logFont.lfWeight) << ", "
+		<< ConstantDictionary::BigBool(logFont.lfItalic) << ", "
+		<< ConstantDictionary::BigBool(logFont.lfUnderline) << ", "
+		<< ConstantDictionary::BigBool(logFont.lfStrikeOut) << ", "
+		<< ConstantDictionary::CharSet(logFont.lfCharSet) << ", "
+		<< ConstantDictionary::CharPrecision(logFont.lfOutPrecision) << ", "
+		<< ConstantDictionary::ClipPrecision(logFont.lfClipPrecision) << ", "
+		<< ConstantDictionary::CharQuality(logFont.lfQuality) << ", "
+		<< ConstantDictionary::PitchAndFamily(logFont.lfPitchAndFamily) << ", "
+		<< "L\"" << CharTraits<wchar_t>::convert(logFont.lfFaceName).c_str() << "\"};\n";
+}
+
+void AppendBMIText(const BITMAPINFO* pBmi, std::stringstream& ss)
+{
+	auto pBH = &pBmi->bmiHeader;
+	const char* format = R"(	BITMAPINFO bmi = {
+		{
+			%d, // biSize
+			%d, // biWidth
+			%d, // biHeight
+			%d, // biPlanes
+			%d, // biBitCount
+			%d, // biCompression
+			%d, // biSizeImage
+			%d, // biXPelsPerMeter
+			%d, // biYPelsPerMeter
+			%d, // biClrUsed
+			%d // biClrImportant
+		}
+	};
+)";
+	char buffer[512];
+	sprintf_s(buffer, format, (int)pBH->biSize, (int)pBH->biWidth, (int)pBH->biHeight, (int)pBH->biPlanes,
+		(int)pBH->biBitCount, (int)pBH->biCompression, (int)pBH->biSizeImage, (int)pBH->biXPelsPerMeter,
+		(int)pBH->biYPelsPerMeter, (int)pBH->biClrUsed, (int)pBH->biClrImportant);
+	ss << buffer;
+}
+
+void AppendBits(const char* pBits, int byteCount, int height, std::stringstream& ss)
+{
+	ss << std::hex;
+
+	ss << "\tconst char bits[] = {\n";
+	int lineWidth = byteCount / height;
+	for (int i = 0; i < height; ++i)
+	{
+		ss << "\t\t";
+		for (int j = 0; j < lineWidth; ++j)
+		{
+			ss << "0x" << (int)pBits[j] << ',';
+		}
+		if (i == height - 1)
+		{
+			// erase last comma.
+			ss.seekp((int)ss.tellp() - 1);
+		}
+		ss << "\n";
+		pBits += lineWidth;
+	}
+	ss << "\t};\n";
+
+	ss << std::dec;
 }
 
 void NoParams(const char* func, std::stringstream& ss)
@@ -118,7 +294,49 @@ void CreatePen(const unsigned char* data, std::stringstream& ss)
 	int32_t elements[5];
 	for (int i = 0; i < 5; ++i)
 		elements[i] = *((int32_t*)data + i);
-	ss << "gdiHandles[" << elements[0] << "] = CreatePen(hdc, " << ConstantDictionary::PenStyle(elements[1]) << ", " << elements[2] << ", RGB(" << GetRValue(elements[4]) << ", " << GetGValue(elements[4]) << ", " << GetBValue(elements[4]) << "));\n";
+	ss << "gdiHandles[" << elements[0] << "] = CreatePen(" << ConstantDictionary::PenStyle(elements[1]) << ", " << elements[2] << ", " << ConstantDictionary::RGBColor(elements[4]) << ");\n";
+}
+
+void ExtCreatePen(const unsigned char* data, std::stringstream& ss)
+{
+	auto record = reinterpret_cast<const EMREXTCREATEPEN*>(data - sizeof(EMR));
+	const auto& elp = record->elp;
+	const auto& logBrush = *reinterpret_cast<const LOGBRUSH*>(&elp.elpBrushStyle);
+	//auto pBmi = reinterpret_cast<const BITMAPINFO*>((const char*)record + record->offBmi);
+	ss << "{\n";
+	LogBrushToString(ss, logBrush, 1);
+	const char* pstyle;
+	if (elp.elpNumEntries)
+	{
+		ArrayToString<DWORD>(ss, elp.elpStyleEntry, elp.elpNumEntries, "style", 1);
+		pstyle = "&style";
+	}
+	else
+	{
+		pstyle = "nullptr";
+	}
+	ss << "\tgdiHandles[" << record->ihPen << "] = ExtCreatePen(" << ConstantDictionary::PenStyle(elp.elpPenStyle) << ", " << elp.elpWidth << ", &logBrush, " << elp.elpNumEntries << ", " << pstyle << ");\n";
+	ss << "}\n";
+}
+
+void CreateBrushIndirect(const unsigned char* data, std::stringstream& ss)
+{
+	auto record = reinterpret_cast<const EMRCREATEBRUSHINDIRECT*>(data - sizeof(EMR));
+	const auto& logBrush = record->lb;
+	ss << "{\n";
+	LogBrushToString(ss, logBrush, 1);
+	ss << "\tgdiHandles[" << record->ihBrush << "] = CreateBrushIndirect(&logBrush);\n";
+	ss << "}\n";
+}
+
+void CreateFontIndirectW(const unsigned char* data, std::stringstream& ss)
+{
+	auto record = reinterpret_cast<const EMREXTCREATEFONTINDIRECTW*>(data - sizeof(EMR));
+	const auto& logFont = record->elfw.elfLogFont;
+	ss << "{\n";
+	LogFontWToString(ss, logFont, 1);
+	ss << "\tgdiHandles[" << record->ihFont << "] = CreateFontIndirectW(&logFont);\n";
+	ss << "}\n";
 }
 
 void OnePoint(const char* func, const unsigned char* data, std::stringstream& ss, const char* suffix = "")
@@ -193,57 +411,6 @@ void PolyPolyline(const char* func, const unsigned char* data, std::stringstream
 	ArrayToString(ss, points, numberOfPoints, "points", 1);
 	ss << "\t" << func << "(hdc, points, polys, " << numberOfPolylines << ");\n";
 	ss << "}\n";
-}
-
-void AppendBMIText(const BITMAPINFO* pBmi, std::stringstream& ss)
-{
-	auto pBH = &pBmi->bmiHeader;
-	const char* format = R"(	BITMAPINFO bmi = {
-		{
-			" << %d << ", // biSize
-			" << %d << ", // biWidth
-			" << %d << ", // biHeight
-			" << %d << ", // biPlanes
-			" << %d << ", // biBitCount
-			" << %d << ", // biCompression
-			" << %d << ", // biSizeImage
-			" << %d << ", // biXPelsPerMeter
-			" << %d << ", // biYPelsPerMeter
-			" << %d << ", // biClrUsed
-			" << %d << " // biClrImportant
-		}
-	};)";
-	char buffer[512];
-	sprintf_s(buffer, format, (int)pBH->biSize, (int)pBH->biWidth, (int)pBH->biHeight, (int)pBH->biPlanes,
-		(int)pBH->biBitCount, (int)pBH->biCompression, (int)pBH->biSizeImage, (int)pBH->biXPelsPerMeter,
-		(int)pBH->biYPelsPerMeter, (int)pBH->biClrUsed, (int)pBH->biClrImportant);
-	ss << buffer;
-}
-
-void AppendBits(const char* pBits, int byteCount, int height, std::stringstream& ss)
-{
-	ss << std::hex;
-
-	ss << "\tconst char bits[] = {\n";
-	int lineWidth = byteCount / height;
-	for (int i = 0; i < height; ++i)
-	{
-		ss << "\t\t";
-		for (int j = 0; j < lineWidth; ++j)
-		{
-			ss << "0x" << (int)pBits[j] << ',';
-		}
-		if (i == height - 1)
-		{
-			// erase last comma.
-			ss.seekp((int)ss.tellp() - 1);
-		}
-		ss << "\n";
-		pBits += lineWidth;
-	}
-	ss << "\t};\n";
-
-	ss << std::dec;
 }
 
 void BitBlt(unsigned int dataSize, const unsigned char* data, std::stringstream& ss)
@@ -336,6 +503,23 @@ void ModifyWorldTransform(const unsigned char* data, std::stringstream& ss)
 	AppendXForm(data, ss);
 	int32_t mode = *(int32_t*)(data + sizeof(XFORM));
 	ss << "\tModifyWorldTransform(hdc, &xf, " << ConstantDictionary::WorldTransform(mode) << ");\n";
+	ss << "}\n";
+}
+
+template<typename CharType>
+void ExtTextOut(const unsigned char* data, std::stringstream& ss)
+{
+	auto emrText = reinterpret_cast<const EMREXTTEXTOUTA*>(data - sizeof(EMR))->emrtext;
+	using xstring = std::basic_string<CharType, std::char_traits<CharType>, std::allocator<CharType>>;
+	xstring buffer(reinterpret_cast<const CharType*>(data - sizeof(EMR) + emrText.offString), emrText.nChars);
+	ss << "{\n";
+	ss << "\tconst " << typeid(CharType).name() << "* text = " << CharTraits<CharType>::prefix() << "\"" << CharTraits<CharType>::convert(buffer).c_str() << "\";\n";
+	ss << "\tRECT rect = ";
+	TypeToString(ss, emrText.rcl);
+	ss << ";\n";
+	ss << "\t" << ExtTextOutName<CharType>::get() << "(hdc, " << emrText.ptlReference.x << ", "
+		<< emrText.ptlReference.y << ", " << ConstantDictionary::ExtTextOutOptions(emrText.fOptions)
+		<< ", &rect, text, " << emrText.nChars << ", nullptr);\n";
 	ss << "}\n";
 }
 
@@ -693,6 +877,7 @@ BOOL CALLBACK EnumMetafileCallback(
 				ss << "//szlMicrometers=(" << pH->szlMicrometers.cx << ", " << pH->szlMicrometers.cy << ") Size of the reference device in micrometers\n";
 			}
 #endif /* WINVER >= 0x0500 */
+			ss << "SetGraphicsMode(hdc, GM_ADVANCED);\n";
 			ss << "\nHGDIOBJ gdiHandles[" << pH->nHandles << "] = {0};\n";
 			ss << "HGDIOBJ g_stockObject = NULL;\n";
 		}
@@ -805,6 +990,7 @@ BOOL CALLBACK EnumMetafileCallback(
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeSetTextColor:
 		{
+			OneInt("SetTextColor", data, ss, ConstantDictionary::RGBColor);
 		}
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeSetBkColor:
@@ -873,6 +1059,7 @@ BOOL CALLBACK EnumMetafileCallback(
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeCreateBrushIndirect:
 		{
+			CreateBrushIndirect(data, ss);
 		}
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeDeleteObject:
@@ -1066,14 +1253,17 @@ BOOL CALLBACK EnumMetafileCallback(
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeExtCreateFontIndirect:
 		{
+			CreateFontIndirectW(data, ss);
 		}
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeExtTextOutA:
 		{
+			ExtTextOut<char>(data, ss);
 		}
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeExtTextOutW:
 		{
+			ExtTextOut<wchar_t>(data, ss);
 		}
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypePolyBezier16:
@@ -1125,6 +1315,7 @@ BOOL CALLBACK EnumMetafileCallback(
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypeExtCreatePen:
 		{
+			ExtCreatePen(data, ss);
 		}
 		break;
 	case Gdiplus::EmfPlusRecordType::EmfRecordTypePolyTextOutA:

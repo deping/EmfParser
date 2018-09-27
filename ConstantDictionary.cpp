@@ -6,6 +6,31 @@
 		str = #name;	\
 		break;
 
+#define OrSymbol(name)			\
+if (mode & name)				\
+{								\
+	if (cur != g_symbolsBuffer)	\
+	{							\
+		strcpy(cur, g_or);		\
+		cur += g_orLen;			\
+	}							\
+	strcpy(cur, #name);			\
+	cur += strlen(cur);			\
+}
+
+#define EndOrSymbol(mask)		\
+mode &= ~mask;					\
+if (mode)						\
+{								\
+	if (cur != g_symbolsBuffer)	\
+	{							\
+		strcpy(cur, g_or);		\
+		cur += g_orLen;			\
+	}							\
+	itoa(mode, cur, 10);		\
+}
+
+
 ConstantDictionary::ConstantDictionary()
 {
 }
@@ -33,6 +58,145 @@ const char * ConstantDictionary::BkMode(int mode)
 		break;
 	}
 	return str;
+}
+
+const char * ConstantDictionary::BigBool(int mode)
+{
+	const char* str;
+	if (mode)
+	{
+		str = "TRUE";
+	}
+	else
+	{
+		str = "FALSE";
+	}
+	return str;
+}
+
+const char * ConstantDictionary::BrushStyle(int mode)
+{
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode)
+	{
+	CASE(BS_SOLID)
+	CASE(BS_NULL)
+	CASE(BS_HATCHED)
+	CASE(BS_PATTERN)
+	CASE(BS_INDEXED)
+	CASE(BS_DIBPATTERN)
+	CASE(BS_DIBPATTERNPT)
+	CASE(BS_PATTERN8X8)
+	CASE(BS_DIBPATTERN8X8)
+	CASE(BS_MONOPATTERN)
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	return str;
+}
+
+const char * ConstantDictionary::CharSet(int mode)
+{
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode)
+	{
+	CASE(ANSI_CHARSET)
+	CASE(DEFAULT_CHARSET)
+	CASE(SYMBOL_CHARSET)
+	CASE(SHIFTJIS_CHARSET)
+	CASE(HANGEUL_CHARSET)
+	CASE(GB2312_CHARSET)
+	CASE(CHINESEBIG5_CHARSET)
+	CASE(OEM_CHARSET)
+#if(WINVER >= 0x0400)
+	CASE(JOHAB_CHARSET)
+	CASE(HEBREW_CHARSET)
+	CASE(ARABIC_CHARSET)
+	CASE(GREEK_CHARSET)
+	CASE(TURKISH_CHARSET)
+	CASE(VIETNAMESE_CHARSET)
+	CASE(THAI_CHARSET)
+	CASE(EASTEUROPE_CHARSET)
+	CASE(RUSSIAN_CHARSET)
+
+	CASE(MAC_CHARSET)
+	CASE(BALTIC_CHARSET)
+#endif
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	return str;
+}
+
+const char * ConstantDictionary::CharPrecision(int mode)
+{
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode)
+	{
+	CASE(OUT_DEFAULT_PRECIS)
+	CASE(OUT_STRING_PRECIS)
+	CASE(OUT_CHARACTER_PRECIS)
+	CASE(OUT_STROKE_PRECIS)
+	CASE(OUT_TT_PRECIS)
+	CASE(OUT_DEVICE_PRECIS)
+	CASE(OUT_RASTER_PRECIS)
+	CASE(OUT_TT_ONLY_PRECIS)
+	CASE(OUT_OUTLINE_PRECIS)
+	CASE(OUT_SCREEN_OUTLINE_PRECIS)
+	CASE(OUT_PS_ONLY_PRECIS)
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	return str;
+}
+
+const char * ConstantDictionary::CharQuality(int mode)
+{
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode)
+	{
+	CASE(DEFAULT_QUALITY)
+	CASE(DRAFT_QUALITY)
+	CASE(PROOF_QUALITY)
+#if(WINVER >= 0x0400)
+	CASE(NONANTIALIASED_QUALITY)
+	CASE(ANTIALIASED_QUALITY)
+#endif /* WINVER >= 0x0400 */
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	return str;
+}
+
+const char * ConstantDictionary::ClipPrecision(int mode)
+{
+	if (mode == 0)
+	{
+		return "CLIP_DEFAULT_PRECIS";
+	}
+
+	g_symbolsBuffer[0] = '\0';
+	char* cur;
+	cur = g_symbolsBuffer;
+
+	OrSymbol(CLIP_CHARACTER_PRECIS)
+	OrSymbol(CLIP_STROKE_PRECIS)
+	OrSymbol(CLIP_LH_ANGLES)
+	OrSymbol(CLIP_TT_ALWAYS)
+#if (_WIN32_WINNT >= _WIN32_WINNT_LONGHORN)
+	OrSymbol(CLIP_DFA_DISABLE)
+#endif // (_WIN32_WINNT >= _WIN32_WINNT_LONGHORN)
+	OrSymbol(CLIP_EMBEDDED)
+
+	return g_symbolsBuffer;
 }
 
 const char * ConstantDictionary::ClipRgnMergeMode(int mode)
@@ -67,6 +231,82 @@ const char * ConstantDictionary::ColorTableUsage(int mode)
 	return str;
 }
 
+const char * ConstantDictionary::ExtTextOutOptions(int mode)
+{
+	if (mode == 0)
+	{
+		g_symbolsBuffer[0] = '0';
+		g_symbolsBuffer[1] = '\0';
+		return g_symbolsBuffer;
+	}
+
+	g_symbolsBuffer[0] = '\0';
+	char* cur;
+	cur = g_symbolsBuffer;
+
+	OrSymbol(ETO_OPAQUE);
+	OrSymbol(ETO_CLIPPED);
+#if(WINVER >= 0x0400)
+	OrSymbol(ETO_GLYPH_INDEX);
+	OrSymbol(ETO_RTLREADING);
+	OrSymbol(ETO_NUMERICSLOCAL);
+	OrSymbol(ETO_NUMERICSLATIN);
+	OrSymbol(ETO_IGNORELANGUAGE);
+#endif /* WINVER >= 0x0400 */
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN2K)
+	OrSymbol(ETO_PDY);
+#endif // (_WIN32_WINNT >= _WIN32_WINNT_WIN2K)
+#if (_WIN32_WINNT >= _WIN32_WINNT_LONGHORN)
+	OrSymbol(ETO_REVERSE_INDEX_MAP);
+#endif
+
+	EndOrSymbol(0x1FFFF);
+
+	return g_symbolsBuffer;
+}
+
+const char * ConstantDictionary::FontWeight(int mode)
+{
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode)
+	{
+	CASE(FW_DONTCARE)
+	CASE(FW_THIN)
+	CASE(FW_EXTRALIGHT)
+	CASE(FW_LIGHT)
+	CASE(FW_NORMAL)
+	CASE(FW_MEDIUM)
+	CASE(FW_SEMIBOLD)
+	CASE(FW_BOLD)
+	CASE(FW_EXTRABOLD)
+	CASE(FW_HEAVY)
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	return str;
+}
+
+const char * ConstantDictionary::HatchStyle(int mode)
+{
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode)
+	{
+	CASE(HS_HORIZONTAL)
+	CASE(HS_VERTICAL)
+	CASE(HS_FDIAGONAL)
+	CASE(HS_BDIAGONAL)
+	CASE(HS_CROSS)
+	CASE(HS_DIAGCROSS)
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	return str;
+}
+
 const char * ConstantDictionary::ICMMode(int mode)
 {
 	g_intBuffer[0] = '\0';
@@ -86,54 +326,23 @@ const char * ConstantDictionary::ICMMode(int mode)
 
 const char * ConstantDictionary::Layout(int mode)
 {
+	if (mode == 0)
+	{
+		g_symbolsBuffer[0] = '0';
+		g_symbolsBuffer[1] = '\0';
+		return g_symbolsBuffer;
+	}
+
 	g_symbolsBuffer[0] = '\0';
 	char* cur;
 	cur = g_symbolsBuffer;
 
-	if (mode & LAYOUT_RTL)
-	{
-		strcpy(cur, "LAYOUT_RTL");
-	}
-	cur += strlen(cur);
+	OrSymbol(LAYOUT_RTL);
+	OrSymbol(LAYOUT_BTT);
+	OrSymbol(LAYOUT_VBH);
+	OrSymbol(LAYOUT_BITMAPORIENTATIONPRESERVED);
 
-	if (mode & LAYOUT_BTT)
-	{
-		if (cur == g_symbolsBuffer)
-			strcpy(cur, "LAYOUT_BTT");
-		else
-			strcpy(cur, " | LAYOUT_BTT");
-	}
-	cur += strlen(cur);
-
-	if (mode & LAYOUT_VBH)
-	{
-		if (cur == g_symbolsBuffer)
-			strcpy(cur, "LAYOUT_VBH");
-		else
-			strcpy(cur, " | LAYOUT_VBH");
-	}
-	cur += strlen(cur);
-
-	if (mode & LAYOUT_BITMAPORIENTATIONPRESERVED)
-	{
-		if (cur == g_symbolsBuffer)
-			strcpy(cur, "LAYOUT_BITMAPORIENTATIONPRESERVED");
-		else
-			strcpy(cur, " | LAYOUT_BITMAPORIENTATIONPRESERVED");
-	}
-	cur += strlen(cur);
-
-	mode &= ~0xF;
-
-	if (mode)
-	{
-		if (cur != g_symbolsBuffer)
-		{
-			strcpy(cur, g_or);
-			cur += g_orLen;
-		}
-		itoa(mode, cur, 10);
-	}
+	EndOrSymbol(0xF);
 
 	return g_symbolsBuffer;
 }
@@ -233,6 +442,50 @@ const char * ConstantDictionary::PenStyle(int mode)
 	return g_symbolsBuffer;
 }
 
+const char * ConstantDictionary::PitchAndFamily(int mode)
+{
+	g_symbolsBuffer[0] = '\0';
+	char* cur;
+	cur = g_symbolsBuffer;
+
+	g_intBuffer[0] = '\0';
+	const char* str;
+	switch (mode & 0xF)
+	{
+	CASE(DEFAULT_PITCH)
+	CASE(FIXED_PITCH)
+	CASE(VARIABLE_PITCH)
+#if(WINVER >= 0x0400)
+	CASE(MONO_FONT)
+#endif /* WINVER >= 0x0400 */
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	strcpy(cur, str);
+	cur += strlen(cur);
+
+	strcpy(cur, g_or);
+	cur += g_orLen;
+
+	switch (mode & ~0xF)
+	{
+	CASE(FF_DONTCARE)
+	CASE(FF_ROMAN)
+	CASE(FF_SWISS)
+	CASE(FF_MODERN)
+	CASE(FF_SCRIPT)
+	CASE(FF_DECORATIVE)
+	default:
+		str = itoa(mode, g_intBuffer, 10);
+		break;
+	}
+	strcpy(cur, str);
+	cur += strlen(cur);
+
+	return g_symbolsBuffer;
+}
+
 const char * ConstantDictionary::PolyFillMode(int mode)
 {
 	g_intBuffer[0] = '\0';
@@ -246,6 +499,27 @@ const char * ConstantDictionary::PolyFillMode(int mode)
 		break;
 	}
 	return str;
+}
+
+const char * ConstantDictionary::RGBColor(int rgb)
+{
+	g_symbolsBuffer[0] = '\0';
+	char* cur = g_symbolsBuffer;
+
+	strcpy(cur, "RGB(");
+	cur += strlen(cur);
+	itoa(GetRValue(rgb), cur, 10);
+	cur += strlen(cur);
+	strcpy(cur, ",");
+	cur += strlen(cur);
+	itoa(GetGValue(rgb), cur, 10);
+	cur += strlen(cur);
+	strcpy(cur, ",");
+	cur += strlen(cur);
+	itoa(GetBValue(rgb), cur, 10);
+	cur += strlen(cur);
+	strcpy(cur, ")");
+	return g_symbolsBuffer;
 }
 
 const char * ConstantDictionary::ROP2(int mode)

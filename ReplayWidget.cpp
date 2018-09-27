@@ -83,7 +83,7 @@ void ReplayWidget::paint()
 		x = GetStockObject(i);
 	{
 		Gdiplus::Graphics g(hdc);
-		auto blueBrush = new Gdiplus::SolidBrush(Gdiplus::Color::Blue);
+		auto blueBrush = new Gdiplus::SolidBrush(Gdiplus::Color::Gray);
 		RECT rect;
 		GetClientRect((HWND)hwnd, &rect);
 		g.FillRectangle(blueBrush, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
